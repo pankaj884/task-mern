@@ -1,0 +1,66 @@
+const Redis = require("ioredis");
+const redisClient = new Redis();
+
+const addTaskInRedis = (taskObject, callback) => {
+  redisClient.set("task:" + taskObject.id, JSON.stringify(taskObject));
+  callback(null, "success");
+};
+
+const updateTaskInRedis = (taskObject, taskIdToUpdate, callback) => {
+  redisClient.get("task:" + taskIdToUpdate, (err, taskJson) => {
+    if (err) {
+      console.error("Error retrieving task:", err);
+      callback(err);
+    } else if (taskJson) {
+      // Parse the JSON string to get the task object
+      const existingTask = JSON.parse(taskJson);
+
+      existingTask.title = taskObject.title;
+      existingTask.description = taskObject.description;
+
+      // Store the updated task back in Redis
+      redisClient.set(
+        "task:" + taskIdToUpdate,
+        JSON.stringify(existingTask),
+        callback
+      );
+    } else {
+      callback();
+      console.log("Task not found.");
+    }
+  });
+};
+
+const deleteTaskFromRedis = (taskIdToDelete, callback) => {
+  redisClient.del("task:" + taskIdToDelete, callback);
+};
+
+const getTaskFromRedis = (callback) => {
+  redisClient.keys("task:*", (err, keys) => {
+    if (err) {
+      console.error("Error retrieving task keys:", err);
+    } else if (keys.length > 0) {
+      // Retrieve all task objects using the keys
+      redisClient.mget(keys, (err, results) => {
+        if (err) {
+          console.error("Error retrieving task objects:", err);
+        } else {
+          const tasks = results.map((taskJson) => JSON.parse(taskJson));
+          callback(null, tasks);
+          //   console.log("All tasks:", tasks);
+        }
+      });
+    } else {
+      callback(null, []);
+
+      console.log("No tasks found.");
+    }
+  });
+};
+
+module.exports = {
+  addTaskInRedis,
+  getTaskFromRedis,
+  deleteTaskFromRedis,
+  updateTaskInRedis,
+};
