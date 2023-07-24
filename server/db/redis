@@ -1,5 +1,5 @@
 const Redis = require("ioredis");
-const redisClient = new Redis();
+const redisClient = new Redis("localhost:6379");
 
 const addTaskInRedis = (taskObject, callback) => {
   redisClient.set("task:" + taskObject.id, JSON.stringify(taskObject));
